@@ -1,0 +1,3 @@
+require 'rBravia'
+
+RBravia.register
