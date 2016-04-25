@@ -1,51 +1,63 @@
 class RBravia
+	@@configuration = {}
+
+	def self.init(ip, psk, nick)
+		@@configuration[ip] = ip
+		@@configuration[psk] = psk
+		@@configuration[nick] = nick
+	end
+
 	def self.register
 		require 'rest-client'
 
-		uri = "192.168.10.156/sony/accessControl"
+		uri = "#{@@configuration[ip]}/sony/accessControl"
+		psk = psk
 
-		xml = '{
-			"id":13,
-			"method":"actRegister",
-			"version":"1.0",
-			"params":[{
-				"clientid":"rubyClient:1",
-				"nickname":"rubyClient"},
+		xml = "
+		{
+			'id':13,
+			'method':'actRegister',
+			'version':'1.0',
+			'params':[{
+				'clientid':'#{@@configuration[nick]}:1',
+				'@@configuration[nick]':'#{@@configuration[nick]}'},
 				[{
-					"clientid":"rubyClient:1",
-					"value":"yes",
-					"nickname":"rubyClient",
-					"function":"WOL"
+					'clientid':'#{@@configuration[nick]}:1',
+					'value':'yes',
+					'@@configuration[nick]':'#{@@configuration[nick]}',
+					'function':'WOL'
 				}]
-			]}'
+			]}'"
 
-		begin
-			response = RestClient.post uri, xml
-		rescue RestClient::ExceptionWithResponse => err
-			puts err.response
-		end
+		headers = {
+			:Authorization => "Basic #{@@configuration[psk]}"
+		}
 
-		# puts response
+		response = RestClient.post uri, xml, headers
+		self.cookies = response.cookies
 	end
-	def self.sendCommand
+
+	def self.wake
+		puts "Wake up!"
+	end
+
+	def self.sendCommand(command)
 		require 'rest-client'
 
-		uri = "192.168.10.156/sony/IRCC"
-		# uri = "www.google.com"
+		uri = "#{@@configuration[ip]}/sony/IRCC"
 
-		command = "AAAAAQAAAAEAAAATAw=="
-		xml = '
-			<?xml version="1.0"?>
-			<s:Envelope xmlns:s="http://schemas.xmlsoap.org/soap/envelope/" s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/">
+		xml = "
+			<?xml version='1.0'?>
+			<s:Envelope xmlns:s='http://schemas.xmlsoap.org/soap/envelope/' s:encodingStyle='http://schemas.xmlsoap.org/soap/encoding/'>
 			  <s:Body>
-			    <u:X_SendIRCC xmlns:u="urn:schemas-sony-com:service:IRCC:1">
+			    <u:X_SendIRCC xmlns:u='urn:schemas-sony-com:service:IRCC:1'>
 			      <IRCCCode>#{command}</IRCCCode>
 			    </u:X_SendIRCC>
 			  </s:Body>
-			</s:Envelope>'
+			</s:Envelope>"
 
-		response = RestClient.post uri, xml, {:content_type => xml}, {:SOAPAction => "urn:schemas-sony-com:service:IRCC:1#X_SendIRCC"}
-		# response = RestClient.get uri
+		response = RestClient.post uri, xml, {:content_type => xml, :SOAPAction => "urn:schemas-sony-com:service:IRCC:1#X_SendIRCC", :cookies => self.cookies}
+
 		puts response
 	end
 end
